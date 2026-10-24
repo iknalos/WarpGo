@@ -19,7 +19,7 @@ env:
 jobs:
   core:
     name: Go core (tests + Android library)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,6 +44,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools   # the old default 'tools' package no longer exists
 
       - name: Android NDK
         run: sdkmanager --install "ndk;${NDK_VERSION}"
@@ -73,7 +75,7 @@ jobs:
   build:
     name: Signed APK
     needs: core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       # monotonic per run: the in-app updater installs anything with a higher number
       VERSION_CODE: ${{ github.run_number }}
@@ -96,6 +98,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools   # the old default 'tools' package no longer exists
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -143,7 +147,7 @@ jobs:
   device-test:
     name: Emulator tests (every option passes data, both tunnels carry traffic)
     needs: core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -194,7 +198,7 @@ jobs:
 
   release:
     needs: [ build, device-test ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Collect the APK
         uses: actions/download-artifact@v4
