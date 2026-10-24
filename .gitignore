@@ -11,3 +11,8 @@
 local.properties
 app/build/
 build/
+
+# built by CI (gomobile bind) and local tools
+app/libs/
+core/*.aar
+core/*.exe

@@ -27,14 +27,71 @@
             android:textSize="14sp"
             android:alpha="0.7" />
 
+        <LinearLayout
+            android:id="@+id/updateBanner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/banner_bg"
+            android:orientation="vertical"
+            android:padding="14dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/updateText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="15sp" />
+
+            <ProgressBar
+                android:id="@+id/updateProgress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:max="1000"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="end"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/updateLater"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Later" />
+
+                <Button
+                    android:id="@+id/updateNow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Update now" />
+            </LinearLayout>
+        </LinearLayout>
+
         <TextView
             android:id="@+id/statusText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
+            android:layout_marginTop="36dp"
             android:gravity="center"
             android:text="Not connected"
             android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/statusDetail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:textSize="13sp"
+            android:alpha="0.7"
+            android:visibility="gone" />
 
         <ProgressBar
             android:id="@+id/progress"
@@ -47,15 +104,15 @@
             android:id="@+id/toggleButton"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="28dp"
             android:text="Connect"
             android:textSize="18sp" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
-            android:text="Connection port"
+            android:layout_marginTop="36dp"
+            android:text="Connection"
             android:textStyle="bold"
             android:textSize="16sp" />
 
@@ -63,7 +120,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:text="If a network blocks WARP, try another port. 2408 is the default; 4500 and 500 are usually left open by firewalls."
+            android:text="Auto tests each way of reaching Cloudflare, one at a time, and connects with the first one that really passes data. Some networks let only one of them through."
             android:textSize="13sp"
             android:alpha="0.7" />
 
@@ -75,40 +132,109 @@
             android:orientation="vertical">
 
             <RadioButton
-                android:id="@+id/port4500"
+                android:id="@+id/modeAuto"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:checked="true"
-                android:text="4500 (recommended)" />
+                android:text="Auto: test each, use one that works (recommended)" />
+
+            <RadioButton
+                android:id="@+id/port4500"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="WireGuard · port 4500" />
 
             <RadioButton
                 android:id="@+id/port2408"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="2408 (WARP default)" />
+                android:text="WireGuard · port 2408 (WARP default)" />
 
             <RadioButton
                 android:id="@+id/port500"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="500" />
+                android:text="WireGuard · port 500" />
+
+            <RadioButton
+                android:id="@+id/masqueH3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="MASQUE · HTTP/3 (looks like web traffic)" />
+
+            <RadioButton
+                android:id="@+id/masqueH2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="MASQUE · HTTP/2 (for networks that block UDP)" />
         </RadioGroup>
+
+        <TextView
+            android:id="@+id/resultsText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/banner_bg"
+            android:lineSpacingExtra="4dp"
+            android:padding="12dp"
+            android:textIsSelectable="true"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/testAllButton"
+            style="?attr/borderlessButtonStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Test every option" />
 
         <Button
             android:id="@+id/resetButton"
             style="?attr/borderlessButtonStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
             android:text="Reset WARP account" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Switching ports requires Disconnect then Connect again."
+            android:text="Switching options requires Disconnect then Connect again."
             android:textSize="12sp"
             android:alpha="0.6" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/buildText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="12sp"
+                android:alpha="0.6" />
+
+            <Button
+                android:id="@+id/showLogButton"
+                style="?attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Log"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/checkUpdatesButton"
+                style="?attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Check for updates"
+                android:textSize="12sp" />
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>

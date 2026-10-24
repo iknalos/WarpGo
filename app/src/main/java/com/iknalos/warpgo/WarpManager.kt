@@ -1,216 +1,169 @@
 package com.iknalos.warpgo
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
-import com.wireguard.android.backend.GoBackend
-import com.wireguard.android.backend.Tunnel
-import com.wireguard.config.Config
-import com.wireguard.crypto.KeyPair
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.util.Base64
+import com.iknalos.warpgo.warpcore.Warpcore
 import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.StringReader
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
 
 /**
- * Registers a free Cloudflare WARP account on-device and brings up a WireGuard
- * tunnel to Cloudflare. No keys are ever shipped in the app: a fresh keypair is
- * generated on the phone and registered with Cloudflare's API at runtime.
- *
- * API constants verified against wgcf v2.2.31 (the tool that successfully
- * registered on 2026-06-23).
+ * Accounts, tests and tunnel control. The tunnels themselves run in the Go core
+ * (core/warpcore): WireGuard via wireguard-go, MASQUE via usque.
  */
 object WarpManager {
 
-    private const val API = "https://api.cloudflareclient.com/v0a1922"
-    private const val CLIENT_VERSION = "a-6.3-1922"
-    private const val USER_AGENT = "okhttp/3.12.1"
+    data class ProbeResult(val ok: Boolean, val ms: Long, val detail: String)
 
-    // Cloudflare's global WARP peer public key — constant across all accounts.
-    private const val WARP_PEER_PUBKEY = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo="
-
-    // WARP always assigns this fixed IPv4 to the client interface.
-    private const val CLIENT_V4 = "172.16.0.2/32"
+    data class Stats(
+        val running: Boolean,
+        val mode: Mode?,
+        val connected: Boolean,
+        val rx: Long,
+        val tx: Long,
+        val seconds: Int,
+    )
 
     private const val PREFS = "warp_reg"
-    private const val K_PRIV = "private_key"
-    private const val K_V6 = "address_v6"
-    private const val K_ID = "device_id"
-    private const val K_TOKEN = "token"
+    private const val K_WG = "wg_account"
+    private const val K_MASQUE = "masque_account"
+    private const val MEMORY = "auto_memory"
 
-    private const val TUNNEL_NAME = "warp"
-
-    private val http = OkHttpClient()
-    private val JSON = "application/json".toMediaType()
-
-    @Volatile private var backend: GoBackend? = null
-    private var tunnel: WarpTunnel? = null
+    /** Set by WarpVpnService when a tunnel fails to start; shown once by the UI. */
+    @Volatile var lastError: String? = null
 
     private fun prefs(ctx: Context): SharedPreferences =
         ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    private fun backend(ctx: Context): GoBackend =
-        backend ?: GoBackend(ctx.applicationContext).also { backend = it }
+    // ---- accounts -------------------------------------------------------------
 
-    private fun tunnel(): WarpTunnel =
-        tunnel ?: WarpTunnel().also { tunnel = it }
-
-    fun isUp(ctx: Context): Boolean = try {
-        backend(ctx).getState(tunnel()) == Tunnel.State.UP
-    } catch (e: Exception) {
-        false
+    /**
+     * Blocking. The WireGuard account: the one baked in at build time (works on
+     * networks that intercept WARP signup), else a fresh on-device registration.
+     */
+    fun wireGuardAccount(ctx: Context): String {
+        prefs(ctx).getString(K_WG, null)?.let { return it }
+        val json = if (BuildConfig.WARP_PRIVATE_KEY.isNotBlank()) {
+            JSONObject()
+                .put("private_key", BuildConfig.WARP_PRIVATE_KEY)
+                .put("address_v6", BuildConfig.WARP_ADDRESS_V6)
+                .toString()
+        } else {
+            Warpcore.registerWireGuard()
+        }
+        prefs(ctx).edit().putString(K_WG, json).apply()
+        return json
     }
 
-    fun isRegistered(ctx: Context): Boolean =
-        prefs(ctx).getString(K_PRIV, null) != null
+    /** Blocking. The MASQUE account: baked in at build time, else registered on the device. */
+    fun masqueAccount(ctx: Context): String {
+        prefs(ctx).getString(K_MASQUE, null)?.let { return it }
+        val json = if (BuildConfig.WARP_MASQUE_CONFIG.isNotBlank()) {
+            String(Base64.decode(BuildConfig.WARP_MASQUE_CONFIG, Base64.DEFAULT))
+        } else {
+            Warpcore.registerMasque()
+        }
+        prefs(ctx).edit().putString(K_MASQUE, json).apply()
+        return json
+    }
 
-    /** Wipe the stored WARP account so the next connect registers a fresh one. */
+    fun account(ctx: Context, mode: Mode) =
+        if (mode.isMasque) masqueAccount(ctx) else wireGuardAccount(ctx)
+
+    /** The tunnel's own IPv4 and IPv6 addresses, from the account Cloudflare issued. */
+    fun tunnelAddresses(account: String, mode: Mode): Pair<String, String?> {
+        val o = JSONObject(account)
+        val v4 = (if (mode.isMasque) o.optString("ipv4") else o.optString("address_v4"))
+            .ifBlank { "172.16.0.2" }.substringBefore('/')
+        val v6 = (if (mode.isMasque) o.optString("ipv6") else o.optString("address_v6"))
+            .substringBefore('/').ifBlank { null }
+        return v4 to v6
+    }
+
+    /** Wipe the stored accounts; the next connect uses the baked ones or registers fresh. */
     fun resetRegistration(ctx: Context) {
         prefs(ctx).edit().clear().apply()
     }
 
-    /** Blocking — call from a background thread. Registers if needed, then connects. */
-    @Throws(Exception::class)
-    fun connect(ctx: Context, port: Int) {
-        val reg = ensureRegistration(ctx)
-        val config = buildConfig(reg, port)
-        backend(ctx).setState(tunnel(), Tunnel.State.UP, config)
+    // ---- tests ----------------------------------------------------------------
+
+    /**
+     * Blocking. Runs a whole tunnel in memory and checks that a DNS answer comes
+     * back through it, so "OK" means data really flows, not just a handshake.
+     */
+    fun probe(ctx: Context, mode: Mode): ProbeResult = try {
+        val account = account(ctx, mode)
+        val raw = if (mode.isMasque) {
+            Warpcore.probeMasque(account, mode.http2, 6000)
+        } else {
+            Warpcore.probeWireGuard(account, mode.wgPort.toLong(), 5000)
+        }
+        val o = JSONObject(raw)
+        ProbeResult(o.getBoolean("ok"), o.optLong("ms"), o.optString("detail"))
+    } catch (e: Exception) {
+        ProbeResult(false, 0, e.message ?: e.toString())
     }
 
-    /** Blocking — call from a background thread. */
-    @Throws(Exception::class)
+    /** What Auto found working last time on [networkKey], if anything. */
+    fun remembered(ctx: Context, networkKey: String?): Mode? =
+        networkKey?.let { Mode.fromId(ctx.getSharedPreferences(MEMORY, Context.MODE_PRIVATE).getString(it, null)) }
+
+    fun remember(ctx: Context, networkKey: String?, mode: Mode) {
+        if (networkKey == null) return
+        ctx.getSharedPreferences(MEMORY, Context.MODE_PRIVATE).edit().putString(networkKey, mode.id).apply()
+    }
+
+    /**
+     * Identifies the network the phone is on without location permission: its
+     * kind plus the DNS servers and search domains it hands out. Null while a
+     * VPN is the active network.
+     */
+    fun networkKey(ctx: Context): String? {
+        val cm = ctx.getSystemService(ConnectivityManager::class.java) ?: return null
+        val net = cm.activeNetwork ?: return null
+        val caps = cm.getNetworkCapabilities(net) ?: return null
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return null
+        val lp = cm.getLinkProperties(net) ?: return null
+        val kind = when {
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "cell"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "eth"
+            else -> "other"
+        }
+        val dns = lp.dnsServers.mapNotNull { it.hostAddress }.sorted().joinToString(",")
+        return "$kind|${lp.domains.orEmpty()}|$dns"
+    }
+
+    // ---- tunnel ---------------------------------------------------------------
+
+    /** Starts the tunnel. VPN permission must already be granted (VpnService.prepare). */
+    fun connect(ctx: Context, mode: Mode) {
+        lastError = null
+        ctx.startService(
+            Intent(ctx, WarpVpnService::class.java)
+                .setAction(WarpVpnService.ACTION_START)
+                .putExtra(WarpVpnService.EXTRA_MODE, mode.id)
+        )
+    }
+
     fun disconnect(ctx: Context) {
-        backend(ctx).setState(tunnel(), Tunnel.State.DOWN, null)
+        Warpcore.stop()
+        ctx.startService(Intent(ctx, WarpVpnService::class.java).setAction(WarpVpnService.ACTION_STOP))
     }
 
-    private data class Registration(val privateKey: String, val addressV6: String?)
-
-    private fun ensureRegistration(ctx: Context): Registration {
-        val p = prefs(ctx)
-        val existing = p.getString(K_PRIV, null)
-        if (existing != null) {
-            return Registration(existing, p.getString(K_V6, null))
-        }
-        // Preferred: a pre-registered account baked in at build time. This lets
-        // the app work on networks that block WARP's registration endpoint
-        // (e.g. campus Wi-Fi that intercepts api.cloudflareclient.com).
-        if (BuildConfig.WARP_PRIVATE_KEY.isNotBlank()) {
-            val v6 = BuildConfig.WARP_ADDRESS_V6.takeIf { it.isNotBlank() }
-            p.edit()
-                .putString(K_PRIV, BuildConfig.WARP_PRIVATE_KEY)
-                .putString(K_V6, v6)
-                .apply()
-            return Registration(BuildConfig.WARP_PRIVATE_KEY, v6)
-        }
-        // Fallback: register a fresh account at runtime (works off-campus).
-        return registerNewAccount(ctx)
+    fun stats(): Stats {
+        val o = JSONObject(Warpcore.stats())
+        return Stats(
+            running = o.optBoolean("running"),
+            mode = Mode.fromId(o.optString("mode")),
+            connected = o.optBoolean("connected"),
+            rx = o.optLong("rx"),
+            tx = o.optLong("tx"),
+            seconds = o.optInt("seconds"),
+        )
     }
 
-    private fun registerNewAccount(ctx: Context): Registration {
-        val kp = KeyPair()
-        val privateKey = kp.privateKey.toBase64()
-        val publicKey = kp.publicKey.toBase64()
-
-        val regBody = JSONObject().apply {
-            put("key", publicKey)
-            put("install_id", "")
-            put("fcm_token", "")
-            put("tos", isoNow())
-            put("model", "PC")
-            put("type", "Android")
-            put("locale", "en_US")
-        }
-
-        val reg = apiCall("POST", "$API/reg", null, regBody)
-        val deviceId = reg.getString("id")
-        val token = reg.getString("token")
-
-        val addressV6: String? = try {
-            reg.getJSONObject("config")
-                .getJSONObject("interface")
-                .getJSONObject("addresses")
-                .optString("v6").takeIf { it.isNotBlank() }
-        } catch (e: Exception) {
-            null
-        }
-
-        // Enable WARP on the device — without this the tunnel connects but
-        // does not actually route traffic through Cloudflare.
-        apiCall("PATCH", "$API/reg/$deviceId", token, JSONObject().put("warp_enabled", true))
-
-        prefs(ctx).edit()
-            .putString(K_PRIV, privateKey)
-            .putString(K_V6, addressV6)
-            .putString(K_ID, deviceId)
-            .putString(K_TOKEN, token)
-            .apply()
-
-        return Registration(privateKey, addressV6)
-    }
-
-    private fun buildConfig(reg: Registration, port: Int): Config {
-        val addresses = buildString {
-            append(CLIENT_V4)
-            if (!reg.addressV6.isNullOrBlank()) {
-                append(", ")
-                append(reg.addressV6)
-                append("/128")
-            }
-        }
-        val conf = """
-            [Interface]
-            PrivateKey = ${reg.privateKey}
-            Address = $addresses
-            DNS = 1.1.1.1, 1.0.0.1
-            MTU = 1280
-
-            [Peer]
-            PublicKey = $WARP_PEER_PUBKEY
-            AllowedIPs = 0.0.0.0/0, ::/0
-            Endpoint = engage.cloudflareclient.com:$port
-            PersistentKeepalive = 25
-        """.trimIndent()
-        return Config.parse(BufferedReader(StringReader(conf)))
-    }
-
-    private fun apiCall(method: String, url: String, token: String?, body: JSONObject): JSONObject {
-        val rb = body.toString().toRequestBody(JSON)
-        val builder = Request.Builder()
-            .url(url)
-            .header("User-Agent", USER_AGENT)
-            .header("CF-Client-Version", CLIENT_VERSION)
-            .header("Accept", "application/json")
-        if (token != null) builder.header("Authorization", "Bearer $token")
-        when (method) {
-            "POST" -> builder.post(rb)
-            "PATCH" -> builder.patch(rb)
-            "PUT" -> builder.put(rb)
-            else -> throw IllegalArgumentException("Unsupported method $method")
-        }
-        http.newCall(builder.build()).execute().use { resp ->
-            val text = resp.body?.string().orEmpty()
-            if (!resp.isSuccessful) {
-                throw IOException("WARP API ${resp.code}: $text")
-            }
-            return JSONObject(if (text.isBlank()) "{}" else text)
-        }
-    }
-
-    private fun isoNow(): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-        sdf.timeZone = TimeZone.getTimeZone("UTC")
-        return sdf.format(Date())
-    }
-
-    private class WarpTunnel : Tunnel {
-        override fun getName(): String = TUNNEL_NAME
-        override fun onStateChange(newState: Tunnel.State) { /* no-op */ }
-    }
+    fun logs(): String = Warpcore.logs()
 }
