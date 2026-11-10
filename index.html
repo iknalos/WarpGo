@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WarpGo: Free Cloudflare WARP Client for Android and Windows</title>
+<meta name="description" content="WarpGo is a free Cloudflare WARP (1.1.1.1) client for Android and Windows. One tap tunnels your traffic over WireGuard or MASQUE (HTTP/3), and Auto mode finds what works on school, campus and office Wi-Fi that blocks VPNs.">
+<link rel="canonical" href="https://iknalos.github.io/WarpGo/">
+<link rel="icon" type="image/png" href="icon-256.png">
+<link rel="apple-touch-icon" href="icon-256.png">
+<meta name="theme-color" content="#F6821F">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="WarpGo">
+<meta property="og:title" content="WarpGo: Free Cloudflare WARP Client for Android and Windows">
+<meta property="og:description" content="One-tap 1.1.1.1 WARP tunnel over WireGuard or MASQUE (HTTP/3). Auto mode finds what works on Wi-Fi that blocks VPNs.">
+<meta property="og:url" content="https://iknalos.github.io/WarpGo/">
+<meta property="og:image" content="https://iknalos.github.io/WarpGo/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="WarpGo: Free Cloudflare WARP Client for Android and Windows">
+<meta name="twitter:description" content="One-tap 1.1.1.1 WARP tunnel over WireGuard or MASQUE (HTTP/3), with an Auto mode for Wi-Fi that blocks VPNs.">
+<meta name="twitter:image" content="https://iknalos.github.io/WarpGo/og.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://iknalos.github.io/WarpGo/#site",
+      "name": "WarpGo",
+      "alternateName": ["Warp Go", "WarpGo VPN", "WarpGo WARP client"],
+      "url": "https://iknalos.github.io/WarpGo/"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "WarpGo for Android",
+      "alternateName": "Warp Go",
+      "operatingSystem": "Android 7.0+",
+      "applicationCategory": "UtilitiesApplication",
+      "description": "Free Cloudflare WARP client for Android with WireGuard and MASQUE (HTTP/3) tunnels and an Auto mode that tests which one passes data.",
+      "downloadUrl": "https://github.com/iknalos/WarpGo/releases/latest/download/WarpGo.apk",
+      "url": "https://github.com/iknalos/WarpGo",
+      "image": "https://iknalos.github.io/WarpGo/icon-512.png",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Person", "name": "iknalos", "url": "https://github.com/iknalos" }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "WarpGo for Windows",
+      "alternateName": "Warp Go for PC",
+      "operatingSystem": "Windows 10, Windows 11",
+      "applicationCategory": "UtilitiesApplication",
+      "description": "Free Cloudflare WARP client for Windows 10 and 11 with WireGuard and MASQUE (HTTP/3) tunnels, Auto mode, tray icon and installer.",
+      "downloadUrl": "https://github.com/iknalos/WarpGo-Windows/releases/latest/download/WarpGo-Setup.exe",
+      "url": "https://github.com/iknalos/WarpGo-Windows",
+      "image": "https://iknalos.github.io/WarpGo/icon-512.png",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Person", "name": "iknalos", "url": "https://github.com/iknalos" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What is WarpGo?",
+          "acceptedAnswer": { "@type": "Answer", "text": "WarpGo is a free, unofficial Cloudflare WARP client for Android and Windows. It tunnels your traffic through Cloudflare's 1.1.1.1 WARP network over WireGuard or MASQUE (HTTP/3 and HTTP/2)." } },
+        { "@type": "Question", "name": "Is WarpGo free?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. WarpGo is free, its source code is on GitHub, and it uses Cloudflare's free WARP service. No sign-up is needed." } },
+        { "@type": "Question", "name": "Does WarpGo work on school or campus Wi-Fi?",
+          "acceptedAnswer": { "@type": "Answer", "text": "It was built for networks that block VPNs. Auto mode tests WireGuard on three ports and MASQUE over HTTP/3 and HTTP/2, and connects with the first that really passes data." } },
+        { "@type": "Question", "name": "Is WarpGo the official Cloudflare 1.1.1.1 app?",
+          "acceptedAnswer": { "@type": "Answer", "text": "No. WarpGo is an independent project that connects to the same WARP network. It is not affiliated with Cloudflare." } },
+        { "@type": "Question", "name": "Where do I download WarpGo?",
+          "acceptedAnswer": { "@type": "Answer", "text": "The Android APK is at github.com/iknalos/WarpGo/releases and the Windows installer is at github.com/iknalos/WarpGo-Windows/releases." } }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+  :root { --accent:#F6821F; --bg:#faf9f7; --card:#fff; --ink:#1d1b19; --muted:#625d56; --line:#e7e3dd; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141312; --card:#1e1c1a; --ink:#f3f0eb; --muted:#a8a197; --line:#33302c; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:17px/1.6 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 16px; }
+  header.hero { padding: 56px 0 40px; text-align: center; }
+  .hero img { width: 96px; height: 96px; }
+  h1 { font-size: clamp(30px, 6vw, 46px); line-height: 1.15; margin: 16px 0 12px; letter-spacing: -.02em; }
+  .lead { font-size: 19px; color: var(--muted); max-width: 680px; margin: 0 auto 28px; }
+  .dl { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 12px; font-weight: 600; text-decoration: none; font-size: 17px; }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.ghost { border: 1.5px solid var(--line); color: var(--ink); background: var(--card); }
+  .btn svg { width: 22px; height: 22px; fill: currentColor; }
+  .small { color: var(--muted); font-size: 14px; margin-top: 12px; }
+  section { padding: 28px 0; }
+  h2 { font-size: 26px; margin: 0 0 14px; letter-spacing: -.01em; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .card h3 { margin: 0 0 6px; font-size: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15.5px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; font-size: 15.5px; }
+  th, td { text-align: left; padding: 12px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { background: rgba(246,130,31,.10); border-top: 0; }
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  summary { font-weight: 600; cursor: pointer; }
+  details p { color: var(--muted); margin: 8px 0 0; }
+  a { color: var(--accent); }
+  footer { padding: 32px 0 48px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); margin-top: 24px; }
+  code { background: rgba(127,127,127,.15); padding: 1px 6px; border-radius: 6px; font-size: .92em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <img src="icon-512.png" alt="WarpGo app icon" width="96" height="96">
+    <h1>WarpGo: free Cloudflare WARP client for Android and Windows</h1>
+    <p class="lead">One tap sends your traffic through Cloudflare's <b>1.1.1.1 WARP</b> network over <b>WireGuard</b> or <b>MASQUE (HTTP/3)</b>. Auto mode finds the tunnel that actually works on school, campus, office and hotel Wi-Fi that blocks VPNs.</p>
+    <div class="dl">
+      <a class="btn primary" href="https://github.com/iknalos/WarpGo/releases/latest/download/WarpGo.apk">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22a11.5 11.5 0 0 0-9.84 0L5.22 5.92a.38.38 0 0 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
+        Download for Android (APK)</a>
+      <a class="btn ghost" href="https://github.com/iknalos/WarpGo-Windows/releases/latest/download/WarpGo-Setup.exe">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.1l7.4-1v7.1H3zm8.3-1.1L21 2.6v8.6h-9.7zM3 12.8h7.4v7.1L3 18.9zm8.3 0H21v8.6l-9.7-1.4z"/></svg>
+        Download for Windows</a>
+    </div>
+    <p class="small">Free · no sign-up · no ads · source on GitHub: <a href="https://github.com/iknalos/WarpGo">Android</a> · <a href="https://github.com/iknalos/WarpGo-Windows">Windows</a></p>
+  </header>
+
+  <section>
+    <h2>Why WarpGo</h2>
+    <p>Some networks let a VPN connect and then quietly drop all of its traffic. A campus firewall might allow the WireGuard handshake and block every data packet after it, and another network might block UDP entirely. Either way, a VPN app can show “Connected” while nothing loads. WarpGo checks that <b>data really comes back</b> before it says Connected. When one way of reaching Cloudflare is blocked, it tries the next one.</p>
+    <div class="grid">
+      <div class="card"><h3>Auto mode</h3><p>Tests WireGuard on ports 4500, 2408 and 500, then MASQUE over HTTP/3 and HTTP/2, and connects with the first that passes real data. It remembers what worked on each network.</p></div>
+      <div class="card"><h3>Honest status</h3><p>Each test runs a whole tunnel in memory and waits for a DNS answer from 1.1.1.1. A handshake alone doesn't count as working.</p></div>
+      <div class="card"><h3>Free WARP, no account</h3><p>Uses Cloudflare's free WARP service. Accounts are created automatically, with a built-in fallback for networks that block sign-up.</p></div>
+      <div class="card"><h3>Updates itself</h3><p>Both apps check GitHub for new releases, verify the SHA-256 and install the update.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Five ways through</h2>
+    <div class="table-wrap">
+    <table>
+      <tr><th>Option</th><th>What it is</th><th>Gets past</th></tr>
+      <tr><td><b>WireGuard</b> · 4500 / 2408 / 500</td><td>the classic WARP tunnel over UDP</td><td>networks that block one UDP port</td></tr>
+      <tr><td><b>MASQUE</b> · HTTP/3</td><td>WARP inside QUIC on UDP 443, which looks like web traffic</td><td>firewalls that recognise WireGuard and drop it on every port</td></tr>
+      <tr><td><b>MASQUE</b> · HTTP/2</td><td>the same over TCP 443</td><td>networks that block UDP altogether</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Android and Windows</h2>
+    <div class="grid">
+      <div class="card"><h3>WarpGo for Android</h3><p>Android 7.0+, 64-bit phones. One APK with no root needed. <a href="https://github.com/iknalos/WarpGo">github.com/iknalos/WarpGo</a></p></div>
+      <div class="card"><h3>WarpGo for Windows</h3><p>Windows 10 and 11 (x64). Installer or portable exe, with a tray icon, start-with-Windows and a command line. <a href="https://github.com/iknalos/WarpGo-Windows">github.com/iknalos/WarpGo-Windows</a></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>FAQ</h2>
+    <details open><summary>What is WarpGo?</summary><p>WarpGo is a free, unofficial Cloudflare WARP client for Android and Windows. It tunnels your traffic through Cloudflare's 1.1.1.1 WARP network over WireGuard or MASQUE (HTTP/3 and HTTP/2).</p></details>
+    <details><summary>Is WarpGo free?</summary><p>Yes. WarpGo is free, its source code is on GitHub, and it uses Cloudflare's free WARP service. No sign-up is needed.</p></details>
+    <details><summary>Does WarpGo work on school or campus Wi-Fi?</summary><p>It was built for networks that block VPNs. Auto mode tests each option and connects with the first that really passes data. “Test every option” shows exactly what a network allows. Please follow your network's rules.</p></details>
+    <details><summary>Is WarpGo the official Cloudflare 1.1.1.1 app?</summary><p>No. WarpGo is an independent project that connects to the same WARP network. Cloudflare's own app is at <a href="https://one.one.one.one/">one.one.one.one</a>.</p></details>
+    <details><summary>Does it hide my IP or change my country?</summary><p>Websites see a Cloudflare IP instead of your network's, usually in or near your own country. WARP is designed for privacy and reliability, not for appearing to be somewhere else.</p></details>
+    <details><summary>Does WarpGo collect data?</summary><p>No. It connects only to Cloudflare (WARP servers and the sign-up API) and to GitHub (update checks). There are no analytics.</p></details>
+    <details><summary>Windows says “Windows protected your PC”</summary><p>The Windows exe isn't code-signed yet, so SmartScreen warns about new downloads. Click <b>More info → Run anyway</b>, and compare the file with <code>SHA256SUMS.txt</code> on the release page.</p></details>
+  </section>
+
+  <footer>
+    WarpGo is made by <a href="https://iknalos.github.io/">iknalos</a> ·
+    <a href="https://github.com/iknalos/WarpGo">Android source</a> · <a href="https://github.com/iknalos/WarpGo-Windows">Windows source</a><br>
+    WarpGo is not affiliated with, endorsed by or sponsored by Cloudflare, Inc. “Cloudflare” and “WARP” are trademarks of Cloudflare, Inc. WireGuard is a registered trademark of Jason A. Donenfeld.
+  </footer>
+</div>
+</body>
+</html>
